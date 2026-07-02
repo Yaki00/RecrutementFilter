@@ -2,7 +2,8 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>MIRA Recrutement</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -139,12 +140,9 @@
         </div>
       </section>
 
-      <section id="experience-screen" class="hidden">
-        <div id="ambience"></div>
-        <div id="weather-layer" aria-hidden="true">
-          <div class="rain"></div>
-        </div>
+      <section id="experience-screen" class="hidden" data-mood="calm">
         <video id="camera" autoplay playsinline muted></video>
+        <canvas id="bg-effects"></canvas>
         <canvas id="overlay"></canvas>
 
         <div id="hud-top">
@@ -160,7 +158,7 @@
             <div id="tilt-left-fill" class="tilt-fill left"></div>
             <div id="tilt-right-fill" class="tilt-fill right"></div>
           </div>
-          <p id="tilt-text">Inclinez franchement la tête pour valider</p>
+          <p id="tilt-text">Inclinez legerement la tete pour valider</p>
         </div>
       </section>
 

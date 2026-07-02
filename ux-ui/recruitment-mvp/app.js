@@ -1,8 +1,25 @@
 import {
+  applyMoodToScreen,
+  countBadAnswers,
+  getMoodStateFromAnswers
+} from "./ambience-mood.js";
+import {
+  createMaskBuilder,
+  renderMaskedBackground
+} from "./background-effects.js";
+import {
   getConsentUiState,
   isReadingCompleted,
   shouldRequireScroll
 } from "./consent-gate.js";
+import { drawSadExpression, getSadnessLevel } from "./face-expression.js";
+import {
+  HEAD_POSE_CONFIG,
+  detectHeadPose,
+  getTiltStrength,
+  isConfirmReady,
+  isConfirmYaw
+} from "./head-pose.js";
 
 const QUESTIONS = [
   { id: "q1", text: "Tu es à l'aise sur un projet IA concret ?", expectedSide: "left" },
@@ -36,12 +53,13 @@ const TILT_LEFT_FILL = document.querySelector("#tilt-left-fill");
 const TILT_RIGHT_FILL = document.querySelector("#tilt-right-fill");
 const TILT_TEXT = document.querySelector("#tilt-text");
 const VIDEO = document.querySelector("#camera");
+const EFFECTS_CANVAS = document.querySelector("#bg-effects");
 const CANVAS = document.querySelector("#overlay");
-const AMBIENCE = document.querySelector("#ambience");
-const WEATHER_LAYER = document.querySelector("#weather-layer");
+const EFFECTS_CTX = EFFECTS_CANVAS.getContext("2d");
 const CTX = CANVAS.getContext("2d");
 
 let faceLandmarker;
+let imageSegmenter;
 let running = false;
 let answers = [];
 let currentQuestionIndex = 0;
@@ -57,15 +75,11 @@ let candidateDirection = "neutral";
 let directionHoldStart = 0;
 let FaceLandmarkerClass;
 let FilesetResolverClass;
-let lightningTimeoutId = 0;
+let ImageSegmenterClass;
+let maskBuilder;
+let currentMoodState = { mood: "calm", intensity: 0 };
+let currentSadness = 0;
 
-const YAW_THRESHOLD = 0.09;
-const STRONG_YAW = 0.15;
-const REQUIRED_STABLE_FRAMES = 14;
-const RESPONSE_COOLDOWN_MS = 1600;
-const REQUIRED_NEUTRAL_FRAMES = 5;
-const MIN_REACTION_MS = 700;
-const CONFIRM_HOLD_MS = 520;
 let consentReadingCompleted = false;
 
 function refreshConsentControls() {
@@ -119,84 +133,19 @@ function messageFromVerdict(verdict) {
 }
 
 function updateAmbience() {
-  const score = answers.reduce((acc, a) => acc + (a.isFit ? 1 : 0), 0);
-  const ratio = answers.length ? score / answers.length : null;
+  currentMoodState = getMoodStateFromAnswers(answers);
+  currentSadness = getSadnessLevel(countBadAnswers(answers));
+  applyMoodToScreen(EXPERIENCE_SCREEN, currentMoodState);
 
-  if (ratio === null) {
-    AMBIENCE.style.background =
-      "radial-gradient(circle at center, rgba(179, 220, 255, 0.12) 10%, rgba(8, 20, 40, 0.16) 75%)";
-    AMBIENCE.style.filter = "brightness(1) saturate(0.95)";
-  } else if (ratio >= 0.8) {
-    AMBIENCE.style.background =
-      "radial-gradient(circle at center, rgba(255, 247, 176, 0.24) 5%, rgba(18, 48, 98, 0.08) 64%, rgba(5, 9, 16, 0.2) 100%)";
-    AMBIENCE.style.filter = "brightness(1.2) saturate(1.2)";
-  } else if (ratio >= 0.5) {
-    AMBIENCE.style.background =
-      "radial-gradient(circle at center, rgba(179, 220, 255, 0.16) 10%, rgba(8, 20, 40, 0.18) 75%)";
-    AMBIENCE.style.filter = "brightness(1.02) saturate(1)";
+  if (currentMoodState.mood === "calm") {
+    TILT_TEXT.style.color = "#eff4ff";
+    TILT_TEXT.style.textShadow = "0 1px 5px rgba(0, 0, 0, 0.4)";
+  } else if (currentMoodState.mood === "gradient") {
+    TILT_TEXT.style.color = "#d9e4ff";
+    TILT_TEXT.style.textShadow = `0 2px ${6 + currentMoodState.intensity * 4}px rgba(0, 0, 0, ${0.55 + currentMoodState.intensity * 0.18})`;
   } else {
-    AMBIENCE.style.background =
-      "radial-gradient(circle at center, rgba(80, 92, 117, 0.1) 0%, rgba(8, 10, 16, 0.42) 78%)";
-    AMBIENCE.style.filter = "brightness(0.8) saturate(0.8) contrast(1.1)";
-  }
-
-  updateWeatherEffects(ratio);
-}
-
-function stopLightningLoop() {
-  if (lightningTimeoutId) {
-    clearTimeout(lightningTimeoutId);
-    lightningTimeoutId = 0;
-  }
-}
-
-function triggerLightningFlash() {
-  if (!WEATHER_LAYER) return;
-  WEATHER_LAYER.classList.add("flash");
-  setTimeout(() => WEATHER_LAYER.classList.remove("flash"), 220);
-}
-
-function scheduleLightningLoop() {
-  stopLightningLoop();
-  lightningTimeoutId = window.setTimeout(
-    () => {
-      if (WEATHER_LAYER?.dataset.weather === "storm") {
-        triggerLightningFlash();
-        scheduleLightningLoop();
-      }
-    },
-    1600 + Math.random() * 2600
-  );
-}
-
-function updateWeatherEffects(positiveRatio) {
-  if (!WEATHER_LAYER) return;
-
-  if (positiveRatio === null) {
-    WEATHER_LAYER.dataset.weather = "clear";
-    stopLightningLoop();
-    WEATHER_LAYER.classList.remove("flash");
-    return;
-  }
-
-  const negativeRatio = 1 - positiveRatio;
-  let weather = "clear";
-
-  if (negativeRatio >= 0.5) {
-    weather = "storm";
-  } else if (negativeRatio >= 0.25) {
-    weather = "rain";
-  }
-
-  WEATHER_LAYER.dataset.weather = weather;
-
-  if (weather === "storm") {
-    if (!lightningTimeoutId) {
-      scheduleLightningLoop();
-    }
-  } else {
-    stopLightningLoop();
-    WEATHER_LAYER.classList.remove("flash");
+    TILT_TEXT.style.color = "#cad8ff";
+    TILT_TEXT.style.textShadow = "0 2px 10px rgba(0, 0, 0, 0.82)";
   }
 }
 
@@ -204,42 +153,54 @@ function setQuestion() {
   const q = QUESTIONS[currentQuestionIndex];
   QUESTION_PILL.textContent = q ? q.text : "Calcul du résultat...";
   questionStartedAt = performance.now();
-  questionReadyAt = questionStartedAt + MIN_REACTION_MS;
+  questionReadyAt = questionStartedAt + HEAD_POSE_CONFIG.minReactionMs;
   candidateDirection = "neutral";
   directionHoldStart = 0;
   stableFrames = 0;
 }
 
 function resizeCanvas() {
-  CANVAS.width = VIDEO.videoWidth || EXPERIENCE_SCREEN.clientWidth;
-  CANVAS.height = VIDEO.videoHeight || EXPERIENCE_SCREEN.clientHeight;
+  const width = VIDEO.videoWidth || EXPERIENCE_SCREEN.clientWidth;
+  const height = VIDEO.videoHeight || EXPERIENCE_SCREEN.clientHeight;
+  CANVAS.width = width;
+  CANVAS.height = height;
+  EFFECTS_CANVAS.width = width;
+  EFFECTS_CANVAS.height = height;
 }
 
-function detectHeadPose(landmarks) {
-  const leftEye = landmarks[33];
-  const rightEye = landmarks[263];
-  const nose = landmarks[1];
-  if (!leftEye || !rightEye || !nose) {
-    return { direction: "neutral", yaw: 0 };
+function renderBackgroundEffects(confidenceMask) {
+  if (!confidenceMask || !EFFECTS_CTX) {
+    EFFECTS_CTX?.clearRect(0, 0, EFFECTS_CANVAS.width, EFFECTS_CANVAS.height);
+    return;
   }
 
-  const eyeMidX = (leftEye.x + rightEye.x) / 2;
-  const eyeDist = Math.abs(rightEye.x - leftEye.x) || 1;
-  const yaw = (nose.x - eyeMidX) / eyeDist;
+  if (!maskBuilder) {
+    maskBuilder = createMaskBuilder();
+  }
 
-  if (yaw > YAW_THRESHOLD) return { direction: "right", yaw };
-  if (yaw < -YAW_THRESHOLD) return { direction: "left", yaw };
-  return { direction: "neutral", yaw };
+  renderMaskedBackground({
+    effectsCtx: EFFECTS_CTX,
+    maskBuilder,
+    confidenceMask,
+    width: EFFECTS_CANVAS.width,
+    height: EFFECTS_CANVAS.height,
+    moodState: currentMoodState,
+    sadness: currentSadness
+  });
 }
 
-function resetTiltIndicator(text = "Inclinez franchement la tete pour valider") {
+function detectHeadPoseFromLandmarks(landmarks) {
+  return detectHeadPose(landmarks, lastDirection, HEAD_POSE_CONFIG);
+}
+
+function resetTiltIndicator(text = "Inclinez legerement la tete pour valider") {
   TILT_LEFT_FILL.style.width = "0%";
   TILT_RIGHT_FILL.style.width = "0%";
   TILT_TEXT.textContent = text;
 }
 
 function updateTiltIndicator(yaw, direction) {
-  const strength = Math.min(1, Math.abs(yaw) / STRONG_YAW);
+  const strength = getTiltStrength(yaw, HEAD_POSE_CONFIG);
   const percent = `${Math.round(strength * 50)}%`;
 
   if (direction === "left") {
@@ -257,9 +218,11 @@ function updateTiltIndicator(yaw, direction) {
   resetTiltIndicator(requireNeutralReset ? "Revenez au centre pour la prochaine question" : undefined);
 }
 
-function drawQuestionOverHead(landmarks) {
+function drawOverlay(landmarks) {
   CTX.clearRect(0, 0, CANVAS.width, CANVAS.height);
   if (!landmarks) return;
+
+  drawSadExpression(CTX, landmarks, CANVAS.width, CANVAS.height, currentSadness);
 
   const headTop = landmarks[10];
   if (!headTop) return;
@@ -268,7 +231,9 @@ function drawQuestionOverHead(landmarks) {
   const y = headTop.y * CANVAS.height - 46;
   const text = QUESTION_PILL.textContent;
 
-  CTX.font = "bold 18px Inter, Arial";
+  CTX.font = window.matchMedia("(max-width: 780px)").matches
+    ? "bold 15px Inter, Arial, sans-serif"
+    : "bold 18px Inter, Arial, sans-serif";
   const width = Math.min(CTX.measureText(text).width + 30, CANVAS.width * 0.82);
   const boxX = Math.max(14, Math.min(x - width / 2, CANVAS.width - width - 14));
   const boxY = Math.max(14, y);
@@ -321,7 +286,7 @@ function processDirection(direction, yaw) {
   if (requireNeutralReset) {
     if (direction === "neutral") {
       neutralResetFrames += 1;
-      if (neutralResetFrames >= REQUIRED_NEUTRAL_FRAMES) {
+      if (neutralResetFrames >= HEAD_POSE_CONFIG.requiredNeutralFrames) {
         requireNeutralReset = false;
       }
     } else {
@@ -343,7 +308,7 @@ function processDirection(direction, yaw) {
     return;
   }
 
-  if (Math.abs(yaw) < STRONG_YAW) {
+  if (!isConfirmYaw(yaw, HEAD_POSE_CONFIG)) {
     stableFrames = 0;
     candidateDirection = "neutral";
     directionHoldStart = 0;
@@ -361,14 +326,14 @@ function processDirection(direction, yaw) {
   }
 
   const holdMs = now - directionHoldStart;
-  if (stableFrames >= REQUIRED_STABLE_FRAMES && holdMs >= CONFIRM_HOLD_MS) {
+  if (isConfirmReady(stableFrames, holdMs, HEAD_POSE_CONFIG)) {
     stableFrames = 0;
     candidateDirection = "neutral";
     directionHoldStart = 0;
-    lockUntil = now + RESPONSE_COOLDOWN_MS;
+    lockUntil = now + HEAD_POSE_CONFIG.responseCooldownMs;
     recordAnswer(direction);
   } else {
-    const remaining = Math.max(0, CONFIRM_HOLD_MS - holdMs);
+    const remaining = Math.max(0, HEAD_POSE_CONFIG.confirmHoldMs - holdMs);
     TILT_TEXT.textContent = `Maintenez encore ${Math.ceil(remaining / 100)}s`;
   }
 }
@@ -376,23 +341,33 @@ function processDirection(direction, yaw) {
 function loop() {
   if (!running) return;
 
-  const result = faceLandmarker.detectForVideo(VIDEO, performance.now());
+  const timestamp = performance.now();
+  const result = faceLandmarker.detectForVideo(VIDEO, timestamp);
   const landmarks = result.faceLandmarks?.[0];
-  const { direction, yaw } = landmarks ? detectHeadPose(landmarks) : { direction: "neutral", yaw: 0 };
+  const { direction, yaw } = landmarks
+    ? detectHeadPoseFromLandmarks(landmarks)
+    : { direction: "neutral", yaw: 0 };
+
+  if (imageSegmenter) {
+    const segmentation = imageSegmenter.segmentForVideo(VIDEO, timestamp);
+    renderBackgroundEffects(segmentation.confidenceMasks?.[0]);
+  }
+
   updateTiltIndicator(yaw, direction);
   processDirection(direction, yaw);
-  drawQuestionOverHead(landmarks);
+  drawOverlay(landmarks);
 
   requestAnimationFrame(loop);
 }
 
-async function initFaceLandmarker() {
-  if (!FaceLandmarkerClass || !FilesetResolverClass) {
+async function initMediaModels() {
+  if (!FaceLandmarkerClass || !FilesetResolverClass || !ImageSegmenterClass) {
     const mediapipeModule = await import(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14"
     );
     FaceLandmarkerClass = mediapipeModule.FaceLandmarker;
     FilesetResolverClass = mediapipeModule.FilesetResolver;
+    ImageSegmenterClass = mediapipeModule.ImageSegmenter;
   }
 
   const vision = await FilesetResolverClass.forVisionTasks(
@@ -406,6 +381,16 @@ async function initFaceLandmarker() {
     },
     runningMode: "VIDEO",
     numFaces: 1
+  });
+
+  imageSegmenter = await ImageSegmenterClass.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite"
+    },
+    runningMode: "VIDEO",
+    outputCategoryMask: false,
+    outputConfidenceMasks: true
   });
 }
 
@@ -477,8 +462,8 @@ async function startExperience() {
   RESULT_SCREEN.classList.add("hidden");
   EXPERIENCE_SCREEN.classList.remove("hidden");
 
-  if (!faceLandmarker) {
-    await initFaceLandmarker();
+  if (!faceLandmarker || !imageSegmenter) {
+    await initMediaModels();
   }
 
   await openCamera();
