@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { after, before, describe, it } = require("node:test");
-const { validateCandidatePayload } = require("./candidate-validation");
+const { validateCandidatePayload } = require("../candidate-validation");
 
 describe("candidate-validation", () => {
   it("accepte un candidat epitech valide", () => {

@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
-const { computeKpis } = require("./admin-kpis");
+const { computeKpis } = require("../admin-kpis");
 
 describe("admin-kpis", () => {
   it("calcule les indicateurs principaux", () => {

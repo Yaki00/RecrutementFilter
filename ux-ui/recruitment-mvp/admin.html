@@ -54,6 +54,18 @@
         </header>
 
         <section id="admin-page-participants" class="admin-page card">
+          <div class="admin-page-toolbar">
+            <label class="admin-search">
+              <span class="admin-search-icon" aria-hidden="true">⌕</span>
+              <input
+                id="admin-participants-search"
+                type="search"
+                placeholder="Rechercher par nom, email ou spécialité…"
+                autocomplete="off"
+              />
+            </label>
+            <p id="admin-table-meta" class="admin-table-meta">—</p>
+          </div>
           <div class="admin-table-wrap">
             <table class="admin-table" aria-label="Liste des participants">
               <thead>
@@ -76,7 +88,7 @@
         </section>
 
         <section id="admin-page-kpis" class="admin-page card hidden">
-          <div id="admin-kpis-grid" class="admin-kpis-grid" aria-live="polite"></div>
+          <div id="admin-kpis-root" class="admin-kpis-root" aria-live="polite"></div>
         </section>
       </section>
     </main>

@@ -3,8 +3,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { after, before, describe, it } = require("node:test");
-const { openDatabase } = require("./db");
-const { purgeExpiredData, eraseCandidateByEmail } = require("./data-retention");
+const { openDatabase } = require("../db");
+const { purgeExpiredData, eraseCandidateByEmail } = require("../data-retention");
 
 let db;
 let dbPath;

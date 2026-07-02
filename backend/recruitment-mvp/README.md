@@ -1,30 +1,47 @@
-# MVP recrutement MIRA (caméra + tilt tête)
+# Backend
 
-Prototype rapide :
-- 1 page web avec caméra frontale
-- questions affichées au-dessus de la tête
-- réponses via inclinaison gauche/droite
-- ambiance visuelle selon le score
-- stockage SQLite avec conservation max 2 ans
-
-## Lancer en local
+Express + SQLite. Sert l’API et les fichiers statiques du dossier `ux-ui/recruitment-mvp/`.
 
 ```bash
-cd backend/recruitment-mvp
 npm install
 npm start
+npm test
 ```
 
-Puis ouvrir : `http://localhost:8080`
+## Routes candidat
 
-## Variables utiles
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| POST | `/api/candidates/register` | Profil + consentement → `candidateId`, `candidateToken` |
+| POST | `/api/session` | Fin de questionnaire (jeton obligatoire, réponses recalculées) |
+| GET | `/api/health` | Santé |
 
-- `PORT` (défaut: `8080`)
+## Routes admin (header `Authorization: Bearer <token>`)
 
-## Schéma BDD (SQLite)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| POST | `/api/admin/login` | Mot de passe → token (8 h) |
+| POST | `/api/admin/logout` | Invalidation du token |
+| GET | `/api/admin/participants` | Liste + sessions + réponses |
+| GET | `/api/admin/kpis` | Indicateurs agrégés |
+| POST | `/api/admin/purge` | Suppression des données expirées |
+| POST | `/api/admin/erase-candidate` | Body `{ "email": "..." }` |
 
-Tables :
-- `sessions`
-- `answers`
+Login admin : 3 échecs → ban IP ; rate limit sur toutes les routes admin.
 
-Le backend stocke `expires_at = created_at + 2 ans`.
+## Fichiers
+
+| Fichier | Rôle |
+|---------|------|
+| `server.js` | Démarrage, purge planifiée |
+| `app.js` | Routes |
+| `config.js` | Chemins et variables d’env |
+| `questions-scoring.js` | Lecture `questions.json`, score, verdict |
+| `candidate-auth.js` | Jeton candidat (HMAC, 4 h) |
+| `data-retention.js` | Purge 2 ans, effacement par email |
+
+## Base
+
+`data/recruitment.db` — tables `candidates`, `sessions`, `answers`, `admin_sessions`, `admin_login_attempts`.
+
+Config : copier `.env.example` vers `.env`.

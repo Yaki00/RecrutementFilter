@@ -1,16 +1,14 @@
 const assert = require("node:assert/strict");
-const path = require("path");
 const { describe, it } = require("node:test");
+const config = require("../config");
 const {
   loadQuestionsFromFile,
   processSessionSubmission,
   verdictFromScoredResult
-} = require("./questions-scoring");
-
-const questionsPath = path.resolve(__dirname, "../../ux-ui/recruitment-mvp/questions.json");
+} = require("../questions-scoring");
 
 describe("questions-scoring", () => {
-  const questions = loadQuestionsFromFile(questionsPath);
+  const questions = loadQuestionsFromFile(config.questionsPath);
 
   it("recalcule le verdict côté serveur", () => {
     const answers = questions.map((question) => ({

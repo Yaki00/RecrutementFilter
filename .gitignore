@@ -1,13 +1,26 @@
+# Dépendances
 node_modules/
 **/node_modules/
-npm-debug.log*
 
-# Runtime data
+# Secrets et runtime
+.env
+**/.env
 *.db
 *.sqlite
 *.sqlite3
 backend/recruitment-mvp/data/
 
-# OS / editor
+# Tests / build
+coverage/
+**/.vite/
+**/vitest/results.json
+
+# Logs
+npm-debug.log*
+*.log
+
+# OS / éditeur
 .DS_Store
 .cursor/
+.idea/
+*.swp

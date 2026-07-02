@@ -2,7 +2,13 @@ const crypto = require("crypto");
 
 const MAX_FAILED_ATTEMPTS = 3;
 const BAN_DURATION_MS = 30 * 60 * 1000;
+const BAN_DURATIONS_MS = [
+  30 * 60 * 1000,
+  2 * 60 * 60 * 1000,
+  24 * 60 * 60 * 1000
+];
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+const MAX_LOGIN_DELAY_MS = 8000;
 
 function hashAdminPassword(password, secret) {
   return crypto.createHmac("sha256", secret).update(String(password)).digest("hex");
@@ -25,38 +31,67 @@ function verifyAdminPassword(password, config) {
   return safeEqualHex(expectedHash, providedHash);
 }
 
+function getEscalatingBanDurationMs(banCount = 0) {
+  const index = Math.min(Math.max(banCount, 0), BAN_DURATIONS_MS.length - 1);
+  return BAN_DURATIONS_MS[index];
+}
+
+function getLoginDelayMs(failedAttempts = 0) {
+  if (failedAttempts <= 0) return 0;
+  return Math.min(MAX_LOGIN_DELAY_MS, 1000 * 2 ** (failedAttempts - 1));
+}
+
 function getLoginState(record, now = Date.now()) {
   if (!record) {
     return {
       banned: false,
       failedAttempts: 0,
       remainingAttempts: MAX_FAILED_ATTEMPTS,
-      bannedUntil: null
+      bannedUntil: null,
+      banCount: 0
     };
   }
 
-  const bannedUntil = record.banned_until ? Date.parse(record.banned_until) : 0;
-  const banned = bannedUntil > now;
+  const banCount = record.ban_count || 0;
+  const bannedUntilMs = record.banned_until ? Date.parse(record.banned_until) : 0;
+
+  if (bannedUntilMs > 0 && bannedUntilMs <= now) {
+    return {
+      banned: false,
+      failedAttempts: 0,
+      remainingAttempts: MAX_FAILED_ATTEMPTS,
+      bannedUntil: null,
+      banCount
+    };
+  }
+
+  const banned = bannedUntilMs > now;
+  const failedAttempts = banned
+    ? record.failed_attempts || MAX_FAILED_ATTEMPTS
+    : record.failed_attempts || 0;
 
   return {
     banned,
-    failedAttempts: record.failed_attempts || 0,
-    remainingAttempts: banned
-      ? 0
-      : Math.max(0, MAX_FAILED_ATTEMPTS - (record.failed_attempts || 0)),
-    bannedUntil: banned ? new Date(bannedUntil).toISOString() : null
+    failedAttempts,
+    remainingAttempts: banned ? 0 : Math.max(0, MAX_FAILED_ATTEMPTS - failedAttempts),
+    bannedUntil: banned ? new Date(bannedUntilMs).toISOString() : null,
+    banCount
   };
 }
 
-function getFailedAttemptUpdate(currentFailedAttempts, now = Date.now()) {
+function getFailedAttemptUpdate(currentFailedAttempts, banCount = 0, now = Date.now()) {
   const nextFailed = (currentFailedAttempts || 0) + 1;
   const banned = nextFailed >= MAX_FAILED_ATTEMPTS;
+  const nextBanCount = banned ? banCount + 1 : banCount;
+  const banDurationMs = banned ? getEscalatingBanDurationMs(nextBanCount - 1) : 0;
 
   return {
     failedAttempts: nextFailed,
     banned,
-    bannedUntil: banned ? new Date(now + BAN_DURATION_MS).toISOString() : null,
-    remainingAttempts: banned ? 0 : Math.max(0, MAX_FAILED_ATTEMPTS - nextFailed)
+    banCount: nextBanCount,
+    bannedUntil: banned ? new Date(now + banDurationMs).toISOString() : null,
+    remainingAttempts: banned ? 0 : Math.max(0, MAX_FAILED_ATTEMPTS - nextFailed),
+    banDurationMs
   };
 }
 
@@ -94,11 +129,15 @@ function extractBearerToken(authorizationHeader = "") {
 
 module.exports = {
   BAN_DURATION_MS,
+  BAN_DURATIONS_MS,
   MAX_FAILED_ATTEMPTS,
+  MAX_LOGIN_DELAY_MS,
   SESSION_DURATION_MS,
   createAdminSessionStore,
   extractBearerToken,
+  getEscalatingBanDurationMs,
   getFailedAttemptUpdate,
+  getLoginDelayMs,
   getLoginState,
   hashAdminPassword,
   verifyAdminPassword

@@ -4,11 +4,11 @@ const os = require("os");
 const path = require("path");
 const { after, before, describe, it } = require("node:test");
 const request = require("supertest");
-const { createApp, DEFAULT_QUESTIONS_PATH } = require("./app");
-const { openDatabase } = require("./db");
-const { createAdminSessionStore } = require("./admin-auth");
-const { loadQuestionsFromFile } = require("./questions-scoring");
-const { CONSENT_VERSION } = require("./consent-config");
+const { createApp, DEFAULT_QUESTIONS_PATH } = require("../app");
+const { openDatabase } = require("../db");
+const { createAdminSessionStore } = require("../admin-auth");
+const { loadQuestionsFromFile } = require("../questions-scoring");
+const { CONSENT_VERSION } = require("../consent-config");
 
 let db;
 let app;

@@ -56,8 +56,19 @@ function initDatabase(db) {
       CREATE TABLE IF NOT EXISTS admin_login_attempts (
         ip TEXT PRIMARY KEY,
         failed_attempts INTEGER NOT NULL DEFAULT 0,
+        ban_count INTEGER NOT NULL DEFAULT 0,
         banned_until TEXT,
         updated_at TEXT NOT NULL
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS admin_sessions (
+        token_hash TEXT PRIMARY KEY,
+        ip TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL
       )
     `);
 
@@ -67,6 +78,7 @@ function initDatabase(db) {
     db.run(`ALTER TABLE sessions ADD COLUMN consent_version TEXT`, () => {});
     db.run(`ALTER TABLE candidates ADD COLUMN consent_at TEXT`, () => {});
     db.run(`ALTER TABLE candidates ADD COLUMN consent_version TEXT`, () => {});
+    db.run(`ALTER TABLE admin_login_attempts ADD COLUMN ban_count INTEGER NOT NULL DEFAULT 0`, () => {});
     db.run(
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_candidate_id ON sessions(candidate_id)`,
       () => {}

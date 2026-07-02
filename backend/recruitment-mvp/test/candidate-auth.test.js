@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
-const { createCandidateToken, verifyCandidateToken } = require("./candidate-auth");
+const { createCandidateToken, verifyCandidateToken } = require("../candidate-auth");
 
 const secret = "test-candidate-secret";
 const candidateId = "11111111-1111-1111-1111-111111111111";

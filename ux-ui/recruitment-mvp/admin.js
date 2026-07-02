@@ -9,7 +9,9 @@ const PAGE_TITLE = document.querySelector("#admin-page-title");
 const SUMMARY = document.querySelector("#admin-summary");
 const PARTICIPANTS_BODY = document.querySelector("#admin-participants-body");
 const PARTICIPANTS_EMPTY = document.querySelector("#admin-participants-empty");
-const KPIS_GRID = document.querySelector("#admin-kpis-grid");
+const PARTICIPANTS_SEARCH = document.querySelector("#admin-participants-search");
+const TABLE_META = document.querySelector("#admin-table-meta");
+const KPIS_ROOT = document.querySelector("#admin-kpis-root");
 const REFRESH_BUTTON = document.querySelector("#admin-refresh");
 const LOGOUT_BUTTON = document.querySelector("#admin-logout");
 const NAV_BUTTONS = Array.from(document.querySelectorAll("[data-admin-page]"));
@@ -24,9 +26,11 @@ const MODAL_ANSWERS = document.querySelector("#admin-modal-answers");
 const MODAL_TABS = Array.from(document.querySelectorAll("[data-modal-tab]"));
 
 let participantsCache = [];
+let participantSearchQuery = "";
 let currentPage = "participants";
 let selectedParticipantId = null;
 let currentModalTab = "info";
+let lastKpisUpdatedAt = null;
 
 function getToken() {
   return sessionStorage.getItem(TOKEN_KEY);
@@ -59,6 +63,48 @@ function getParticipantStatus(participant) {
   return getLatestSession(participant) ? "Terminé" : "Inscrit";
 }
 
+function getVerdictClass(verdict) {
+  const normalized = String(verdict || "").toLowerCase();
+  if (normalized.includes("encourageant")) return "admin-verdict-encourageant";
+  if (normalized.includes("mitig")) return "admin-verdict-mitige";
+  if (normalized.includes("non retenu") || normalized.includes("non-retenu")) {
+    return "admin-verdict-non-retenu";
+  }
+  return "admin-verdict-neutral";
+}
+
+function getVerdictBarClass(verdict) {
+  const normalized = String(verdict || "").toLowerCase();
+  if (normalized.includes("encourageant")) return "admin-bar-fill--verdict-encourageant";
+  if (normalized.includes("mitig")) return "admin-bar-fill--verdict-mitige";
+  if (normalized.includes("non retenu") || normalized.includes("non-retenu")) {
+    return "admin-bar-fill--verdict-non-retenu";
+  }
+  return "";
+}
+
+function filterParticipants(participants, query) {
+  const needle = String(query || "")
+    .trim()
+    .toLowerCase();
+  if (!needle) return participants;
+
+  return participants.filter((participant) => {
+    const haystack = [
+      participant.firstName,
+      participant.lastName,
+      participant.email,
+      participant.specialty,
+      getParticipantStatus(participant),
+      getLatestSession(participant)?.verdict
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(needle);
+  });
+}
+
 function showLoginError(message) {
   if (!LOGIN_ERROR) return;
   if (message) {
@@ -89,6 +135,12 @@ async function adminFetch(path, options = {}) {
 
   const response = await fetch(path, { ...options, headers });
   const data = await response.json().catch(() => ({}));
+
+  if (response.status === 429) {
+    const retryAfterSec = data.retryAfterSec || response.headers.get("Retry-After") || 60;
+    throw new Error(`Trop de requêtes. Réessayez dans ${retryAfterSec} seconde(s).`);
+  }
+
   return { response, data };
 }
 
@@ -117,17 +169,44 @@ function renderAnswerStatus(answer) {
   return { label: "Faux", className: "admin-miss" };
 }
 
+function renderVerdictPill(verdict) {
+  if (!verdict) return "—";
+  const className = getVerdictClass(verdict);
+  return `<span class="admin-verdict-pill ${className}">${escapeHtml(verdict)}</span>`;
+}
+
+function updateParticipantsMeta(filteredCount, totalCount) {
+  if (!TABLE_META) return;
+  if (!totalCount) {
+    TABLE_META.textContent = "Aucun participant";
+    return;
+  }
+  if (filteredCount === totalCount) {
+    TABLE_META.textContent = `${totalCount} participant${totalCount > 1 ? "s" : ""}`;
+    return;
+  }
+  TABLE_META.textContent = `${filteredCount} sur ${totalCount} participant${totalCount > 1 ? "s" : ""}`;
+}
+
 function renderParticipantsTable(participants) {
   if (!PARTICIPANTS_BODY) return;
 
-  if (!participants.length) {
+  const filtered = filterParticipants(participants, participantSearchQuery);
+  updateParticipantsMeta(filtered.length, participants.length);
+
+  if (!filtered.length) {
     PARTICIPANTS_BODY.innerHTML = "";
-    PARTICIPANTS_EMPTY?.classList.remove("hidden");
+    if (PARTICIPANTS_EMPTY) {
+      PARTICIPANTS_EMPTY.classList.remove("hidden");
+      PARTICIPANTS_EMPTY.textContent = participants.length
+        ? "Aucun résultat pour cette recherche."
+        : "Aucun participant enregistré pour le moment.";
+    }
     return;
   }
 
   PARTICIPANTS_EMPTY?.classList.add("hidden");
-  PARTICIPANTS_BODY.innerHTML = participants
+  PARTICIPANTS_BODY.innerHTML = filtered
     .map((participant) => {
       const session = getLatestSession(participant);
       const status = getParticipantStatus(participant);
@@ -135,11 +214,11 @@ function renderParticipantsTable(participants) {
 
       return `
         <tr class="admin-table-row" data-participant-id="${escapeHtml(participant.candidateId)}" tabindex="0">
-          <td>${escapeHtml(participant.firstName)} ${escapeHtml(participant.lastName)}</td>
+          <td><strong>${escapeHtml(participant.firstName)} ${escapeHtml(participant.lastName)}</strong></td>
           <td>${escapeHtml(participant.email)}</td>
           <td>${escapeHtml(participant.specialty)}</td>
           <td><span class="admin-status-pill ${statusClass}">${status}</span></td>
-          <td>${escapeHtml(session?.verdict || "—")}</td>
+          <td>${session ? renderVerdictPill(session.verdict) : "—"}</td>
           <td>${session ? escapeHtml(session.score) : "—"}</td>
           <td>${formatDate(participant.registeredAt)}</td>
         </tr>
@@ -160,7 +239,7 @@ function renderInfoView(participant) {
       <div><dt>ID candidat</dt><dd>${escapeHtml(participant.candidateId)}</dd></div>
       <div><dt>Inscription</dt><dd>${formatDate(participant.registeredAt)}</dd></div>
       <div><dt>Statut</dt><dd>${escapeHtml(getParticipantStatus(participant))}</dd></div>
-      <div><dt>Verdict</dt><dd>${escapeHtml(session?.verdict || "—")}</dd></div>
+      <div><dt>Verdict</dt><dd>${session ? renderVerdictPill(session.verdict) : "—"}</dd></div>
       <div><dt>Score</dt><dd>${session ? escapeHtml(session.score) : "—"}</dd></div>
       <div><dt>Session terminée</dt><dd>${formatDate(session?.completedAt)}</dd></div>
       <div><dt>ID session</dt><dd>${escapeHtml(session?.sessionId || "—")}</dd></div>
@@ -172,7 +251,13 @@ function renderInfoView(participant) {
 function renderAnswersView(participant) {
   const session = getLatestSession(participant);
   if (!session) {
-    return `<p class="admin-empty">Ce participant n'a pas encore terminé le questionnaire.</p>`;
+    return `
+      <div class="admin-empty-state">
+        <div class="admin-empty-state-icon" aria-hidden="true">?</div>
+        <strong>Questionnaire non terminé</strong>
+        <span>Ce participant s'est inscrit mais n'a pas encore complété le parcours.</span>
+      </div>
+    `;
   }
 
   const answers = Array.isArray(session.answers) ? session.answers : [];
@@ -182,7 +267,7 @@ function renderAnswersView(participant) {
 
   return `
     <p class="admin-modal-session-meta">
-      Session ${escapeHtml(session.sessionId)} · ${escapeHtml(session.verdict)} ·
+      Session ${escapeHtml(session.sessionId)} · ${renderVerdictPill(session.verdict)} ·
       ${formatDate(session.completedAt)}
     </p>
     <div class="admin-table-wrap">
@@ -255,25 +340,74 @@ function renderKpiCard(label, value, hint = "") {
   `;
 }
 
-function renderBreakdown(title, counts) {
-  const entries = Object.entries(counts || {});
-  if (!entries.length) {
-    return `<p class="admin-empty">Aucune donnée.</p>`;
-  }
+function renderHeroCard(label, value, hint, tone) {
+  return `
+    <article class="admin-kpi-hero-card admin-kpi-hero-card--${tone}">
+      <p class="admin-kpi-hero-label">${escapeHtml(label)}</p>
+      <p class="admin-kpi-hero-value">${escapeHtml(value)}</p>
+      <p class="admin-kpi-hero-hint">${escapeHtml(hint)}</p>
+    </article>
+  `;
+}
+
+function renderFunnel(kpis) {
+  const total = kpis.registeredCount || 0;
+  const done = kpis.completedCount || 0;
+  const pending = kpis.pendingCount || 0;
+  const donePercent = total ? Math.round((done / total) * 100) : 0;
+  const pendingPercent = total ? Math.max(0, 100 - donePercent) : 0;
 
   return `
-    <article class="admin-kpi-breakdown card">
+    <section class="admin-kpis-funnel">
+      <h3>Entonnoir de complétion</h3>
+      <div class="admin-funnel-bar" role="img" aria-label="${donePercent}% des inscrits ont terminé">
+        <div class="admin-funnel-segment admin-funnel-segment--done" style="width:${donePercent}%"></div>
+        <div class="admin-funnel-segment admin-funnel-segment--pending" style="width:${pendingPercent}%"></div>
+      </div>
+      <div class="admin-funnel-legend">
+        <span><span class="admin-funnel-dot" style="background:#3cb371"></span>${done} terminé${done > 1 ? "s" : ""} (${donePercent}%)</span>
+        <span><span class="admin-funnel-dot" style="background:#f0c060"></span>${pending} en attente</span>
+        <span>${total} inscrit${total > 1 ? "s" : ""} au total</span>
+      </div>
+    </section>
+  `;
+}
+
+function renderBreakdown(title, counts, { barClassResolver } = {}) {
+  const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    return `
+      <article class="admin-kpi-breakdown">
+        <h3>${escapeHtml(title)}</h3>
+        <div class="admin-empty-state">
+          <div class="admin-empty-state-icon" aria-hidden="true">—</div>
+          <strong>Aucune donnée</strong>
+          <span>Les statistiques apparaîtront dès les premières sessions.</span>
+        </div>
+      </article>
+    `;
+  }
+
+  const max = Math.max(...entries.map(([, count]) => count), 1);
+
+  return `
+    <article class="admin-kpi-breakdown">
       <h3>${escapeHtml(title)}</h3>
       <ul class="admin-breakdown-list">
         ${entries
-          .map(
-            ([label, count]) => `
-              <li>
-                <span>${escapeHtml(label)}</span>
-                <strong>${escapeHtml(count)}</strong>
+          .map(([label, count]) => {
+            const width = Math.round((count / max) * 100);
+            const barClass = barClassResolver ? barClassResolver(label) : "";
+            return `
+              <li class="admin-breakdown-row">
+                <span class="admin-breakdown-label" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
+                <div class="admin-bar-track" aria-hidden="true">
+                  <div class="admin-bar-fill ${barClass}" style="width:${width}%"></div>
+                </div>
+                <strong class="admin-breakdown-value">${escapeHtml(count)}</strong>
               </li>
-            `
-          )
+            `;
+          })
           .join("")}
       </ul>
     </article>
@@ -281,23 +415,50 @@ function renderBreakdown(title, counts) {
 }
 
 function renderKpis(kpis) {
-  if (!KPIS_GRID || !kpis) return;
+  if (!KPIS_ROOT || !kpis) return;
 
-  KPIS_GRID.innerHTML = `
-    <div class="admin-kpis-grid">
-      ${renderKpiCard("Participants inscrits", kpis.registeredCount)}
-      ${renderKpiCard("Questionnaires terminés", kpis.completedCount)}
-      ${renderKpiCard("En attente", kpis.pendingCount)}
+  lastKpisUpdatedAt = new Date();
+
+  KPIS_ROOT.innerHTML = `
+    <section class="admin-kpis-hero">
+      ${renderHeroCard(
+        "Participants inscrits",
+        kpis.registeredCount,
+        "Total des profils enregistrés",
+        "primary"
+      )}
+      ${renderHeroCard(
+        "Questionnaires terminés",
+        kpis.completedCount,
+        `${kpis.completionRate}% de taux de complétion`,
+        "success"
+      )}
+      ${renderHeroCard(
+        "En attente",
+        kpis.pendingCount,
+        "Inscrits n'ayant pas encore terminé",
+        "warning"
+      )}
+    </section>
+
+    ${renderFunnel(kpis)}
+
+    <section class="admin-kpis-metrics">
       ${renderKpiCard("Taux de complétion", `${kpis.completionRate}%`)}
       ${renderKpiCard("Score moyen", kpis.averageScore, "Sur les sessions terminées")}
       ${renderKpiCard("Précision moyenne", `${kpis.accuracyRate}%`, "Questions scorées uniquement")}
       ${renderKpiCard("Temps moyen / réponse", `${kpis.averageResponseTimeSec}s`)}
-      ${renderKpiCard("Timeouts", kpis.timeoutCount)}
-    </div>
-    <div class="admin-kpis-breakdowns">
+      ${renderKpiCard("Timeouts", kpis.timeoutCount, "Réponses non données à temps")}
+    </section>
+
+    <section class="admin-kpis-breakdowns">
       ${renderBreakdown("Répartition par spécialité", kpis.specialtyCounts)}
-      ${renderBreakdown("Répartition par verdict", kpis.verdictCounts)}
-    </div>
+      ${renderBreakdown("Répartition par verdict", kpis.verdictCounts, {
+        barClassResolver: (label) => getVerdictBarClass(label)
+      })}
+    </section>
+
+    <p class="admin-kpis-updated">Mis à jour ${formatDate(lastKpisUpdatedAt.toISOString())}</p>
   `;
 }
 
@@ -324,23 +485,38 @@ async function loadKpis() {
   const { response, data } = await adminFetch("/api/admin/kpis");
   if (response.status === 401) return handleUnauthorized();
   if (!response.ok || !data.ok) {
-    if (KPIS_GRID) KPIS_GRID.innerHTML = `<p class="admin-empty">Impossible de charger les KPIs.</p>`;
+    if (KPIS_ROOT) {
+      KPIS_ROOT.innerHTML = `
+        <div class="admin-empty-state">
+          <div class="admin-empty-state-icon" aria-hidden="true">!</div>
+          <strong>Chargement impossible</strong>
+          <span>Impossible de récupérer les KPIs. Réessayez.</span>
+        </div>
+      `;
+    }
     return;
   }
 
   if (SUMMARY && currentPage === "kpis") {
-    SUMMARY.textContent = "Vue synthétique des performances du recrutement MIRA.";
+    const { registeredCount, completedCount, completionRate } = data.kpis;
+    SUMMARY.textContent = `${registeredCount} inscrit(s) · ${completedCount} terminé(s) · ${completionRate}% de complétion`;
   }
 
   renderKpis(data.kpis);
 }
 
 async function refreshCurrentPage() {
-  if (currentPage === "kpis") {
-    await loadKpis();
-    return;
+  try {
+    if (currentPage === "kpis") {
+      await loadKpis();
+      return;
+    }
+    await loadParticipants();
+  } catch (error) {
+    if (SUMMARY) {
+      SUMMARY.textContent = error.message || "Erreur lors de l'actualisation.";
+    }
   }
-  await loadParticipants();
 }
 
 async function login(password) {
@@ -375,6 +551,8 @@ async function logout() {
   await adminFetch("/api/admin/logout", { method: "POST" });
   setToken(null);
   participantsCache = [];
+  participantSearchQuery = "";
+  if (PARTICIPANTS_SEARCH) PARTICIPANTS_SEARCH.value = "";
   showLoginScreen();
   showLoginError("");
   if (PASSWORD_INPUT) PASSWORD_INPUT.value = "";
@@ -391,6 +569,11 @@ REFRESH_BUTTON?.addEventListener("click", () => {
 
 LOGOUT_BUTTON?.addEventListener("click", () => {
   logout().catch(console.error);
+});
+
+PARTICIPANTS_SEARCH?.addEventListener("input", (event) => {
+  participantSearchQuery = event.target.value || "";
+  renderParticipantsTable(participantsCache);
 });
 
 NAV_BUTTONS.forEach((button) => {

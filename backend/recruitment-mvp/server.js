@@ -1,35 +1,32 @@
-const path = require("path");
 const fs = require("fs");
 const { createApp } = require("./app");
 const { openDatabase } = require("./db");
-
 const { purgeExpiredData } = require("./data-retention");
+const config = require("./config");
 
-const PORT = process.env.PORT || 8080;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "mira-recruitment-admin-secret";
-const CANDIDATE_TOKEN_SECRET =
-  process.env.CANDIDATE_TOKEN_SECRET || "mira-recruitment-candidate-secret-dev";
-const PURGE_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
-const dataDir = path.join(__dirname, "data");
-const dbPath = path.join(dataDir, "recruitment.db");
-const staticDir = path.resolve(__dirname, "../../ux-ui/recruitment-mvp");
-
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(config.dataDir)) {
+  fs.mkdirSync(config.dataDir, { recursive: true });
 }
 
-const db = openDatabase(dbPath);
+if (config.nodeEnv === "production") {
+  if (!config.adminSecret || !config.candidateTokenSecret) {
+    console.warn(
+      "Production: définissez ADMIN_SECRET et CANDIDATE_TOKEN_SECRET dans l'environnement."
+    );
+  }
+}
+
+const db = openDatabase(config.dbPath);
 const app = createApp({
   db,
-  staticDir,
+  staticDir: config.staticDir,
+  questionsPath: config.questionsPath,
   adminConfig: {
-    adminPassword: ADMIN_PASSWORD,
-    adminSecret: ADMIN_SECRET
+    adminPassword: config.adminPassword,
+    adminSecret: config.adminSecret || "mira-recruitment-admin-secret-dev"
   },
   candidateConfig: {
-    tokenSecret: CANDIDATE_TOKEN_SECRET
+    tokenSecret: config.candidateTokenSecret || "mira-recruitment-candidate-secret-dev"
   }
 });
 
@@ -45,19 +42,22 @@ purgeExpiredData(db)
     console.error("Purge rétention au démarrage échouée:", error.message);
   });
 
-setInterval(() => {
+const purgeTimer = setInterval(() => {
   purgeExpiredData(db).catch((error) => {
     console.error("Purge rétention planifiée échouée:", error.message);
   });
-}, PURGE_INTERVAL_MS);
+}, config.purgeIntervalMs);
+if (typeof purgeTimer.unref === "function") {
+  purgeTimer.unref();
+}
 
-app.listen(PORT, () => {
-  console.log(`MIRA recruitment MVP running on port ${PORT}`);
-  console.log(`Static dir: ${staticDir}`);
-  console.log(`Database: ${dbPath}`);
-  if (!ADMIN_PASSWORD) {
+app.listen(config.port, () => {
+  console.log(`MIRA recruitment MVP running on port ${config.port}`);
+  console.log(`Static dir: ${config.staticDir}`);
+  console.log(`Database: ${config.dbPath}`);
+  if (!config.adminPassword) {
     console.warn("ADMIN_PASSWORD non défini : la vue admin est désactivée.");
   } else {
-    console.log(`Admin UI: http://127.0.0.1:${PORT}/admin`);
+    console.log(`Admin UI: http://127.0.0.1:${config.port}/admin`);
   }
 });

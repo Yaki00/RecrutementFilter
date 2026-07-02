@@ -4,3 +4,10 @@
 **/data
 .git
 .cursor
+.idea
+
+# Tests et dev — exclus de l'image Docker prod
+**/*.test.js
+**/test
+**/coverage
+**/.vite
