@@ -3,9 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VPS_HOST="${VPS_HOST:-pixelbrain-vps}"
-REMOTE_DIR="${REMOTE_DIR:-~/apps/recrutement-mira}"
+REMOTE_DIR="${REMOTE_DIR:-\$HOME/apps/recrutement-mira}"
 
-echo "→ Sync vers ${VPS_HOST}:${REMOTE_DIR}"
+echo "→ Sync vers ${VPS_HOST}:${REMOTE_DIR//\$HOME/~}"
+
+RSYNC_DEST="${VPS_HOST}:~/apps/recrutement-mira/"
 
 rsync -avz --delete \
   --exclude 'node_modules' \
@@ -13,15 +15,15 @@ rsync -avz --delete \
   --exclude '.env' \
   --exclude '.git' \
   --exclude '.cursor' \
-  "${ROOT_DIR}/" "${VPS_HOST}:${REMOTE_DIR}/"
+  "${ROOT_DIR}/" "${RSYNC_DEST}"
 
-ssh "${VPS_HOST}" bash -s <<REMOTE
+ssh "${VPS_HOST}" bash -s <<'REMOTE'
 set -euo pipefail
-cd "${REMOTE_DIR}"
+cd "$HOME/apps/recrutement-mira"
 mkdir -p backend/recruitment-mvp/data
 
 if [ ! -f .env ]; then
-  echo "ERREUR: .env manquant sur le VPS (${REMOTE_DIR}/.env)"
+  echo "ERREUR: .env manquant sur le VPS ($HOME/apps/recrutement-mira/.env)"
   exit 1
 fi
 
@@ -33,7 +35,7 @@ docker run -d \
   --network docker_ekowrk-network \
   --restart unless-stopped \
   --env-file .env \
-  -v "\$(pwd)/backend/recruitment-mvp/data:/app/backend/recruitment-mvp/data" \
+  -v "$HOME/apps/recrutement-mira/backend/recruitment-mvp/data:/app/backend/recruitment-mvp/data" \
   recrutement-mira-web
 
 sleep 2
