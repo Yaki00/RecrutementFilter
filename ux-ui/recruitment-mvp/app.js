@@ -38,6 +38,7 @@ const TILT_TEXT = document.querySelector("#tilt-text");
 const VIDEO = document.querySelector("#camera");
 const CANVAS = document.querySelector("#overlay");
 const AMBIENCE = document.querySelector("#ambience");
+const WEATHER_LAYER = document.querySelector("#weather-layer");
 const CTX = CANVAS.getContext("2d");
 
 let faceLandmarker;
@@ -56,6 +57,7 @@ let candidateDirection = "neutral";
 let directionHoldStart = 0;
 let FaceLandmarkerClass;
 let FilesetResolverClass;
+let lightningTimeoutId = 0;
 
 const YAW_THRESHOLD = 0.09;
 const STRONG_YAW = 0.15;
@@ -118,9 +120,13 @@ function messageFromVerdict(verdict) {
 
 function updateAmbience() {
   const score = answers.reduce((acc, a) => acc + (a.isFit ? 1 : 0), 0);
-  const ratio = answers.length ? score / answers.length : 0.5;
+  const ratio = answers.length ? score / answers.length : null;
 
-  if (ratio >= 0.8) {
+  if (ratio === null) {
+    AMBIENCE.style.background =
+      "radial-gradient(circle at center, rgba(179, 220, 255, 0.12) 10%, rgba(8, 20, 40, 0.16) 75%)";
+    AMBIENCE.style.filter = "brightness(1) saturate(0.95)";
+  } else if (ratio >= 0.8) {
     AMBIENCE.style.background =
       "radial-gradient(circle at center, rgba(255, 247, 176, 0.24) 5%, rgba(18, 48, 98, 0.08) 64%, rgba(5, 9, 16, 0.2) 100%)";
     AMBIENCE.style.filter = "brightness(1.2) saturate(1.2)";
@@ -132,6 +138,65 @@ function updateAmbience() {
     AMBIENCE.style.background =
       "radial-gradient(circle at center, rgba(80, 92, 117, 0.1) 0%, rgba(8, 10, 16, 0.42) 78%)";
     AMBIENCE.style.filter = "brightness(0.8) saturate(0.8) contrast(1.1)";
+  }
+
+  updateWeatherEffects(ratio);
+}
+
+function stopLightningLoop() {
+  if (lightningTimeoutId) {
+    clearTimeout(lightningTimeoutId);
+    lightningTimeoutId = 0;
+  }
+}
+
+function triggerLightningFlash() {
+  if (!WEATHER_LAYER) return;
+  WEATHER_LAYER.classList.add("flash");
+  setTimeout(() => WEATHER_LAYER.classList.remove("flash"), 220);
+}
+
+function scheduleLightningLoop() {
+  stopLightningLoop();
+  lightningTimeoutId = window.setTimeout(
+    () => {
+      if (WEATHER_LAYER?.dataset.weather === "storm") {
+        triggerLightningFlash();
+        scheduleLightningLoop();
+      }
+    },
+    1600 + Math.random() * 2600
+  );
+}
+
+function updateWeatherEffects(positiveRatio) {
+  if (!WEATHER_LAYER) return;
+
+  if (positiveRatio === null) {
+    WEATHER_LAYER.dataset.weather = "clear";
+    stopLightningLoop();
+    WEATHER_LAYER.classList.remove("flash");
+    return;
+  }
+
+  const negativeRatio = 1 - positiveRatio;
+  let weather = "clear";
+
+  if (negativeRatio >= 0.5) {
+    weather = "storm";
+  } else if (negativeRatio >= 0.25) {
+    weather = "rain";
+  }
+
+  WEATHER_LAYER.dataset.weather = weather;
+
+  if (weather === "storm") {
+    if (!lightningTimeoutId) {
+      scheduleLightningLoop();
+    }
+  } else {
+    stopLightningLoop();
+    WEATHER_LAYER.classList.remove("flash");
   }
 }
 

@@ -221,7 +221,8 @@ button:disabled {
 
 #camera,
 #overlay,
-#ambience {
+#ambience,
+#weather-layer {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -236,12 +237,62 @@ button:disabled {
 
 #overlay {
   pointer-events: none;
+  z-index: 3;
 }
 
 #ambience {
   pointer-events: none;
   background: radial-gradient(circle at center, transparent 10%, rgba(6, 8, 16, 0.2) 75%);
   transition: background 350ms ease, filter 350ms ease;
+}
+
+#weather-layer {
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+#weather-layer .rain {
+  position: absolute;
+  inset: -10% -10%;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(194, 215, 255, 0.2) 0 1px,
+    transparent 1px 18px
+  );
+  animation: rain-fall 0.42s linear infinite;
+}
+
+#weather-layer[data-weather="rain"] {
+  opacity: 0.5;
+}
+
+#weather-layer[data-weather="rain"] .rain {
+  opacity: 0.45;
+}
+
+#weather-layer[data-weather="storm"] {
+  opacity: 0.8;
+}
+
+#weather-layer[data-weather="storm"] .rain {
+  opacity: 0.78;
+}
+
+#weather-layer.flash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 22% 18%,
+    rgba(250, 253, 255, 0.9),
+    rgba(255, 255, 255, 0.08) 48%,
+    transparent 72%
+  );
+  animation: lightning-flash 220ms ease-out;
 }
 
 #hud-top,
@@ -272,6 +323,27 @@ button:disabled {
   transform: translateX(-50%);
   z-index: 5;
   width: min(480px, 82%);
+}
+
+@keyframes rain-fall {
+  from {
+    transform: translateY(-6%) translateX(0);
+  }
+  to {
+    transform: translateY(6%) translateX(-1.2%);
+  }
+}
+
+@keyframes lightning-flash {
+  from {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .tilt-track {
