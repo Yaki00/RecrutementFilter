@@ -210,6 +210,152 @@ button:disabled {
   gap: 0.85rem;
 }
 
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-field span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-field input,
+.form-field select {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 0.72rem 0.85rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  background: #fbfcfe;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: 2px solid rgba(52, 91, 150, 0.25);
+  border-color: var(--accent-soft);
+}
+
+.form-field input[aria-invalid="true"],
+.form-field select[aria-invalid="true"] {
+  border-color: #c24141;
+  background: #fff8f8;
+}
+
+.field-error {
+  min-height: 0;
+  color: #b42318;
+  font-size: 0.82rem;
+}
+
+.field-error:not(:empty) {
+  min-height: 1.1rem;
+  margin-top: 0.1rem;
+}
+
+.form-error {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: #fff1f1;
+  border: 1px solid #f3c7c7;
+  color: #9f1d1d;
+  font-size: 0.9rem;
+}
+
+.form-error.hidden {
+  display: none;
+}
+
+.onboarding-progress {
+  margin: 0 0 0.75rem;
+  color: var(--accent-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.onboarding-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4d5e78;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.onboarding-back-btn.hidden {
+  display: none;
+}
+
+.onboarding-back-btn:not(:disabled):hover {
+  background: #ffffff;
+  color: #4d5e78;
+}
+
+.onboarding-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.onboarding-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #c5d0e3;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.onboarding-dot.active {
+  background: var(--accent);
+  transform: scale(1.15);
+}
+
+.onboarding-card {
+  min-height: 220px;
+}
+
+.onboarding-card .hero-banner {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.onboarding-card .hero-banner p {
+  color: var(--text-muted);
+}
+
+.onboarding-card.hidden {
+  display: none;
+}
+
 #experience-screen {
   width: min(1100px, 95vw);
   height: min(720px, 90vh);
@@ -223,6 +369,7 @@ button:disabled {
 
 #camera,
 #bg-effects,
+#face-filter,
 #overlay {
   position: absolute;
   inset: 0;
@@ -242,9 +389,14 @@ button:disabled {
   z-index: 2;
 }
 
-#overlay {
+#face-filter {
   pointer-events: none;
   z-index: 3;
+}
+
+#overlay {
+  pointer-events: none;
+  z-index: 4;
 }
 
 #hud-top,
@@ -266,6 +418,53 @@ button:disabled {
   justify-content: space-between;
   padding: 0 20px;
   font-weight: 600;
+  color: #eff4ff;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  font-size: 0.82rem;
+}
+
+#choice-rail {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.choice-card {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(168px, 28vw);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(30, 36, 46, 0.18);
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  box-shadow: 0 10px 24px rgba(8, 12, 20, 0.22);
+}
+
+.choice-card.left {
+  left: 14px;
+}
+
+.choice-card.right {
+  right: 14px;
+}
+
+.choice-side {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5f6d82;
+  font-weight: 700;
+}
+
+.choice-label {
+  margin: 0.35rem 0 0;
+  color: #121722;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 #tilt-hint {
@@ -381,9 +580,27 @@ button:disabled {
   #hud-bottom {
     bottom: max(10px, env(safe-area-inset-bottom));
     padding: 0 12px;
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     gap: 0.5rem;
     flex-wrap: wrap;
+  }
+
+  .choice-card {
+    width: min(148px, 34vw);
+    padding: 0.65rem 0.7rem;
+    border-radius: 12px;
+  }
+
+  .choice-card.left {
+    left: max(8px, env(safe-area-inset-left));
+  }
+
+  .choice-card.right {
+    right: max(8px, env(safe-area-inset-right));
+  }
+
+  .choice-label {
+    font-size: 0.9rem;
   }
 
   #tilt-hint {
@@ -394,6 +611,10 @@ button:disabled {
   #tilt-text {
     font-size: 0.78rem;
     line-height: 1.35;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 
   button {

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIRA Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body class="admin-body">
+    <main id="admin-app" class="admin-app">
+      <section id="admin-login-screen" class="card admin-card">
+        <header class="hero">
+          <p class="eyebrow">MIRA Admin</p>
+          <h1>Connexion</h1>
+          <p class="hero-subtitle">
+            Accès réservé aux recruteurs. Trois tentatives incorrectes bloquent l'accès
+            temporairement.
+          </p>
+        </header>
+
+        <form id="admin-login-form" class="profile-form" novalidate>
+          <label class="form-field">
+            <span>Mot de passe</span>
+            <input id="admin-password" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="admin-login-error" class="form-error hidden" aria-live="polite"></p>
+          <div class="consent-actions">
+            <button id="admin-login-submit" type="submit">Se connecter</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="admin-dashboard-screen" class="hidden admin-dashboard">
+        <header class="admin-shell card">
+          <div class="admin-shell-top">
+            <div>
+              <p class="eyebrow">MIRA Admin</p>
+              <h1 id="admin-page-title">Participants</h1>
+              <p id="admin-summary" class="hero-subtitle">Chargement...</p>
+            </div>
+            <div class="admin-header-actions">
+              <button id="admin-refresh" type="button">Actualiser</button>
+              <button id="admin-logout" type="button" class="admin-secondary-btn">Déconnexion</button>
+            </div>
+          </div>
+
+          <nav class="admin-nav" aria-label="Navigation admin">
+            <button type="button" class="admin-nav-btn active" data-admin-page="participants">
+              Participants
+            </button>
+            <button type="button" class="admin-nav-btn" data-admin-page="kpis">KPIs</button>
+          </nav>
+        </header>
+
+        <section id="admin-page-participants" class="admin-page card">
+          <div class="admin-table-wrap">
+            <table class="admin-table" aria-label="Liste des participants">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Email</th>
+                  <th>Spécialité</th>
+                  <th>Statut</th>
+                  <th>Verdict</th>
+                  <th>Score</th>
+                  <th>Inscription</th>
+                </tr>
+              </thead>
+              <tbody id="admin-participants-body"></tbody>
+            </table>
+          </div>
+          <p id="admin-participants-empty" class="admin-empty hidden">
+            Aucun participant enregistré pour le moment.
+          </p>
+        </section>
+
+        <section id="admin-page-kpis" class="admin-page card hidden">
+          <div id="admin-kpis-grid" class="admin-kpis-grid" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="admin-modal" class="admin-modal hidden" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+      <div id="admin-modal-backdrop" class="admin-modal-backdrop"></div>
+      <div class="admin-modal-panel card">
+        <header class="admin-modal-header">
+          <div>
+            <p class="eyebrow">Fiche participant</p>
+            <h2 id="admin-modal-title">—</h2>
+          </div>
+          <button id="admin-modal-close" type="button" class="admin-icon-btn" aria-label="Fermer">
+            ×
+          </button>
+        </header>
+
+        <nav class="admin-modal-tabs" aria-label="Vues participant">
+          <button type="button" class="admin-modal-tab active" data-modal-tab="info">Informations</button>
+          <button type="button" class="admin-modal-tab" data-modal-tab="answers">Réponses détaillées</button>
+        </nav>
+
+        <div id="admin-modal-info" class="admin-modal-view"></div>
+        <div id="admin-modal-answers" class="admin-modal-view hidden"></div>
+      </div>
+    </div>
+
+    <script type="module" src="./admin.js"></script>
+  </body>
+</html>

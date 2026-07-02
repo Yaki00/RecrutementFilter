@@ -1,13 +1,14 @@
 export const HEAD_POSE_CONFIG = {
-  yawEnterThreshold: 0.065,
-  yawExitThreshold: 0.04,
-  confirmYaw: 0.1,
-  requiredStableFrames: 18,
-  confirmHoldMs: 680,
-  requiredNeutralFrames: 8,
-  minReactionMs: 800,
-  responseCooldownMs: 1600,
-  indicatorYaw: 0.1
+  yawEnterThreshold: 0.068,
+  yawExitThreshold: 0.042,
+  confirmYaw: 0.102,
+  requiredStableFrames: 11,
+  confirmHoldMs: 460,
+  requiredNeutralFrames: 4,
+  minReactionMs: 420,
+  responseCooldownMs: 850,
+  neutralYawMax: 0.045,
+  indicatorYaw: 0.102
 };
 
 export function computeYaw(landmarks) {
@@ -55,6 +56,10 @@ export function detectHeadPose(
 
 export function isConfirmYaw(yaw, config = HEAD_POSE_CONFIG) {
   return Math.abs(yaw) >= config.confirmYaw;
+}
+
+export function isNeutralEnough(direction, yaw, config = HEAD_POSE_CONFIG) {
+  return direction === "neutral" || Math.abs(yaw) <= config.neutralYawMax;
 }
 
 export function isConfirmReady(stableFrames, holdMs, config = HEAD_POSE_CONFIG) {

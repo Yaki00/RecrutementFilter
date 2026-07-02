@@ -1,3 +1,5 @@
+export const CONSENT_VERSION = "rgpd-v1";
+
 export function isReadingCompleted(scrollState, unlockThresholdPx = 120, minScrollRatio = 0.92) {
   const { scrollTop, clientHeight, scrollHeight } = scrollState;
   const visibleBottom = scrollTop + clientHeight;

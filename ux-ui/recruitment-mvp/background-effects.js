@@ -1,5 +1,8 @@
 import { fillPersonMaskImageData } from "./person-mask.js";
-import { getPersonTintStrength } from "./face-expression.js";
+import { createWeatherSystem, getWeatherIntensity } from "./weather-effects.js";
+
+let weatherSystem = createWeatherSystem();
+let lastWeatherTime = 0;
 
 export function getBackgroundOverlayStrength(moodState) {
   if (!moodState || moodState.mood === "calm") {
@@ -45,44 +48,43 @@ export function drawMirroredMask(ctx, maskCanvas, width, height) {
   ctx.restore();
 }
 
-export function applyPersonTint(ctx, maskCanvas, width, height, sadness) {
-  const tint = getPersonTintStrength(sadness);
-  if (tint.cool <= 0 && tint.dim <= 0) return;
+export function resetWeatherClock(now = performance.now()) {
+  lastWeatherTime = now;
+}
 
-  ctx.save();
-  ctx.fillStyle = `rgba(62, 74, 98, ${tint.cool})`;
-  ctx.fillRect(0, 0, width, height);
-  ctx.globalCompositeOperation = "destination-in";
-  drawMirroredMask(ctx, maskCanvas, width, height);
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = `rgba(20, 26, 38, ${tint.dim})`;
-  ctx.fillRect(0, 0, width, height);
-  ctx.globalCompositeOperation = "destination-in";
-  drawMirroredMask(ctx, maskCanvas, width, height);
-  ctx.restore();
+export function resizeWeather(width, height) {
+  weatherSystem.resize(width, height);
+  resetWeatherClock();
 }
 
 export function renderMaskedBackground({
   effectsCtx,
   maskBuilder,
   confidenceMask,
+  personMaskCanvas: providedMask,
   width,
   height,
-  moodState,
-  sadness = 0
+  moodState
 }) {
-  drawMoodOverlay(effectsCtx, width, height, moodState);
+  const intensity = getWeatherIntensity(moodState);
+  const now = performance.now();
+  const delta = lastWeatherTime ? now - lastWeatherTime : 16;
+  lastWeatherTime = now;
 
-  const personMaskCanvas = maskBuilder.build(confidenceMask, width, height);
+  weatherSystem.update(delta, intensity);
+
+  drawMoodOverlay(effectsCtx, width, height, moodState);
+  weatherSystem.drawRain(effectsCtx, intensity);
+
+  const personMaskCanvas =
+    providedMask || (confidenceMask ? maskBuilder.build(confidenceMask, width, height) : null);
   if (!personMaskCanvas) return null;
 
   effectsCtx.globalCompositeOperation = "destination-out";
   drawMirroredMask(effectsCtx, personMaskCanvas, width, height);
   effectsCtx.globalCompositeOperation = "source-over";
 
-  applyPersonTint(effectsCtx, personMaskCanvas, width, height, sadness);
+  weatherSystem.drawLightning(effectsCtx, intensity);
   return personMaskCanvas;
 }
 

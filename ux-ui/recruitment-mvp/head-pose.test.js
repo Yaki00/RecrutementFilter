@@ -4,7 +4,8 @@ import {
   detectHeadPose,
   getTiltStrength,
   isConfirmReady,
-  isConfirmYaw
+  isConfirmYaw,
+  isNeutralEnough
 } from "./head-pose.js";
 
 const baseLandmarks = Array.from({ length: 500 }, () => ({ x: 0.5, y: 0.5, z: 0 }));
@@ -43,13 +44,18 @@ describe("head-pose", () => {
   });
 
   it("exige un maintien suffisant avant validation", () => {
-    expect(isConfirmReady(18, 680)).toBe(true);
-    expect(isConfirmReady(10, 680)).toBe(false);
-    expect(isConfirmReady(18, 300)).toBe(false);
+    expect(isConfirmReady(11, 460)).toBe(true);
+    expect(isConfirmReady(8, 460)).toBe(false);
+    expect(isConfirmReady(11, 300)).toBe(false);
+  });
+
+  it("accepte un retour au centre leger pour debloquer la question suivante", () => {
+    expect(isNeutralEnough("left", 0.03)).toBe(true);
+    expect(isNeutralEnough("left", 0.08)).toBe(false);
   });
 
   it("calcule une force d inclinaison lisible pour l interface", () => {
-    expect(getTiltStrength(0.05)).toBeCloseTo(0.5, 2);
+    expect(getTiltStrength(0.051)).toBeCloseTo(0.5, 2);
     expect(getTiltStrength(HEAD_POSE_CONFIG.indicatorYaw)).toBe(1);
   });
 });

@@ -1,0 +1,124 @@
+{
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Tu es motivé par un projet innovant autour d'un miroir connecté ?",
+      "type": "yes_no",
+      "left": { "label": "Oui", "value": "yes" },
+      "right": { "label": "Non", "value": "no" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q2",
+      "text": "Tu préfères être sur le pôle IA ou full stack ?",
+      "type": "choice",
+      "left": { "label": "Pôle IA", "value": "ia" },
+      "right": { "label": "Full stack", "value": "fullstack" },
+      "scored": false
+    },
+    {
+      "id": "q3",
+      "text": "L'idée d'un miroir connecté t'intéresse ?",
+      "type": "yes_no",
+      "left": { "label": "Oui", "value": "yes" },
+      "right": { "label": "Non", "value": "no" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q4",
+      "text": "Tu préfères travailler en solo ou en équipe ?",
+      "type": "choice",
+      "left": { "label": "Solo", "value": "solo" },
+      "right": { "label": "En équipe", "value": "team" },
+      "scored": false
+    },
+    {
+      "id": "q5",
+      "text": "As-tu des connaissances en IA ?",
+      "type": "yes_no",
+      "left": { "label": "Oui", "value": "yes" },
+      "right": { "label": "Non", "value": "no" },
+      "scored": false
+    },
+    {
+      "id": "q6",
+      "text": "As-tu des connaissances en IoT ?",
+      "type": "yes_no",
+      "left": { "label": "Oui", "value": "yes" },
+      "right": { "label": "Non", "value": "no" },
+      "scored": false
+    },
+    {
+      "id": "q7",
+      "text": "As-tu des connaissances en cyber / cloud ?",
+      "type": "yes_no",
+      "left": { "label": "Oui", "value": "yes" },
+      "right": { "label": "Non", "value": "no" },
+      "scored": false
+    },
+    {
+      "id": "q8",
+      "text": "Qu'est-ce qu'un capteur mmWave ?",
+      "type": "choice",
+      "left": { "label": "Radar millimétrique (présence / mouvement)", "value": "mmwave_radar" },
+      "right": { "label": "Capteur photo classique", "value": "camera" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q9",
+      "text": "Pour remonter des données capteur vers le cloud, tu utiliserais plutôt ?",
+      "type": "choice",
+      "left": { "label": "MQTT", "value": "mqtt" },
+      "right": { "label": "SMTP (email)", "value": "smtp" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q10",
+      "text": "En déploiement d'une API cloud, tu sécurises les échanges avec ?",
+      "type": "choice",
+      "left": { "label": "HTTPS / TLS", "value": "tls" },
+      "right": { "label": "HTTP sans chiffrement", "value": "http_plain" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q11",
+      "text": "Sur un device embarqué, tu fais tourner l'inférence IA plutôt avec ?",
+      "type": "choice",
+      "left": { "label": "TensorFlow Lite / ONNX", "value": "edge_runtime" },
+      "right": { "label": "Un tableur Excel", "value": "excel" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q12",
+      "text": "En cyber, isoler le réseau IoT du réseau utilisateurs, c'est ?",
+      "type": "choice",
+      "left": { "label": "Segmentation réseau / VLAN", "value": "vlan" },
+      "right": { "label": "Ouvrir tous les ports", "value": "open_ports" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q13",
+      "text": "Pour lire un capteur sur Raspberry Pi, tu utilises souvent ?",
+      "type": "choice",
+      "left": { "label": "GPIO / I2C / SPI", "value": "gpio_bus" },
+      "right": { "label": "Un clavier USB uniquement", "value": "usb_keyboard" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q14",
+      "text": "Un modèle IA embarqué doit surtout optimiser ?",
+      "type": "choice",
+      "left": { "label": "Latence et consommation", "value": "latency_power" },
+      "right": { "label": "Résolution 8K vidéo", "value": "8k_video" },
+      "fitSide": "left"
+    },
+    {
+      "id": "q15",
+      "text": "En cloud, authentifier une API avec un jeton signé, c'est typiquement ?",
+      "type": "choice",
+      "left": { "label": "JWT / OAuth2", "value": "jwt_oauth" },
+      "right": { "label": "Mot de passe dans l'URL", "value": "password_url" },
+      "fitSide": "left"
+    }
+  ]
+}
