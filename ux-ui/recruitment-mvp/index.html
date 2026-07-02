@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIRA Recrutement</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="consent-screen" class="card consent-card">
+        <div id="consent-scroll" class="consent-scroll">
+          <header class="hero">
+            <p class="eyebrow">MIRA - Recrutement</p>
+            <h1>Rencontre MIRA</h1>
+            <p class="hero-subtitle">
+              Une expérience de présélection fluide en 10 questions, pensée pour être
+              humaine, claire et élégante.
+            </p>
+          </header>
+
+          <section class="hero-banner" aria-label="Présentation de l'expérience">
+            <p>
+              Vous répondez simplement en inclinant la tête à gauche ou à droite.
+              L'interface reste volontairement minimaliste afin de se concentrer sur
+              l'échange, sans surcharge visuelle.
+            </p>
+          </section>
+
+          <section class="intro-grid" aria-label="Informations clés">
+            <article class="info-chip">
+              <h2>Durée</h2>
+              <p>Environ 2 à 4 minutes</p>
+            </article>
+            <article class="info-chip">
+              <h2>Collecte</h2>
+              <p>Réponses et métriques de session</p>
+            </article>
+            <article class="info-chip">
+              <h2>Conservation</h2>
+              <p>2 ans maximum</p>
+            </article>
+          </section>
+
+          <section class="rgpd-box" aria-label="Mentions RGPD complètes">
+            <h2>Information complète relative à la protection des données (RGPD)</h2>
+
+          <p>
+            Dans le cadre du processus de préqualification du projet MIRA, nous
+            traitons certaines données à caractère personnel conformément au
+            Règlement (UE) 2016/679 (RGPD) et à la législation nationale
+            applicable. Le responsable de traitement est l'équipe porteuse du
+            recrutement MIRA, joignable via le contact RH communiqué lors du
+            processus de candidature.
+          </p>
+
+          <h3>1) Finalité du traitement</h3>
+          <p>
+            Les données sont utilisées exclusivement pour évaluer l'adéquation
+            initiale d'un profil à une opportunité de collaboration ou de
+            recrutement dans le cadre du projet MIRA. Aucune décision finale
+            entièrement automatisée n'est prise sur la seule base de ce module :
+            il s'agit d'un outil d'aide à la présélection.
+          </p>
+
+          <h3>2) Catégories de données collectées</h3>
+          <ul>
+            <li>Identifiant technique de session généré automatiquement.</li>
+            <li>Horodatage de la session et temps de réponse par question.</li>
+            <li>Réponses sélectionnées (gauche/droite) et score de synthèse.</li>
+            <li>Données techniques minimales (navigateur, langue système).</li>
+          </ul>
+          <p>
+            Important : nous ne conservons pas d'enregistrement vidéo brut, ni de
+            flux audio, ni de photo du visage dans cette expérience.
+          </p>
+
+          <h3>3) Base légale</h3>
+          <p>
+            La base légale de ce traitement est le consentement explicite de la
+            personne concernée. Vous pouvez refuser de participer ou retirer votre
+            consentement à tout moment avant la soumission finale.
+          </p>
+
+          <h3>4) Destinataires et accès aux données</h3>
+          <p>
+            Les données sont accessibles uniquement aux personnes habilitées
+            impliquées dans l'analyse de candidatures (recruteurs, responsables
+            projet, membres autorisés de l'équipe MIRA). Elles ne sont ni vendues,
+            ni cédées à des tiers à des fins commerciales.
+          </p>
+
+          <h3>5) Durée de conservation</h3>
+          <p>
+            Les données sont conservées pour une durée maximale de 2 ans à compter
+            de leur collecte. Au-delà, elles sont supprimées ou anonymisées, sauf
+            obligation légale contraire.
+          </p>
+
+          <h3>6) Hébergement et sécurité</h3>
+          <p>
+            Les données sont hébergées sur une infrastructure VPS administrée par
+            l'équipe projet, avec des mesures techniques raisonnables de
+            sécurisation (chiffrement en transit via HTTPS, restriction d'accès,
+            journalisation technique, principes de minimisation des données).
+          </p>
+
+          <h3>7) Vos droits</h3>
+          <p>
+            Conformément au RGPD, vous disposez d'un droit d'accès, de
+            rectification, d'effacement, de limitation, d'opposition et de
+            portabilité, dans les conditions prévues par la réglementation.
+            Vous pouvez également introduire une réclamation auprès de l'autorité
+            de contrôle compétente (en France : CNIL).
+          </p>
+
+          <h3>8) Exercice des droits et contact</h3>
+          <p>
+            Pour toute demande relative à vos données (accès, suppression, etc.),
+            veuillez contacter le référent recrutement MIRA via l'adresse de
+            contact RH qui vous a été fournie. Afin de protéger les données des
+            candidats, une vérification minimale d'identité peut être demandée.
+          </p>
+          </section>
+        </div>
+
+        <p id="consent-progress" class="consent-progress">
+          Faites défiler le bloc RGPD ci-dessus jusqu'en bas pour déverrouiller le consentement.
+        </p>
+
+        <div class="consent-actions">
+          <label class="consent-line">
+            <input id="consent-checkbox" type="checkbox" disabled />
+            J'ai lu les informations ci-dessus et je consens au traitement de mes
+            données dans le cadre de cette préqualification.
+          </label>
+
+          <button id="start-btn" type="button" disabled>Commencer l'expérience</button>
+        </div>
+      </section>
+
+      <section id="experience-screen" class="hidden">
+        <div id="ambience"></div>
+        <video id="camera" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+
+        <div id="hud-top">
+          <div id="question-pill">Initialisation...</div>
+        </div>
+
+        <div id="hud-bottom">
+          <span>Gauche = OUI</span>
+          <span>Droite = NON</span>
+        </div>
+        <div id="tilt-hint">
+          <div class="tilt-track">
+            <div id="tilt-left-fill" class="tilt-fill left"></div>
+            <div id="tilt-right-fill" class="tilt-fill right"></div>
+          </div>
+          <p id="tilt-text">Inclinez franchement la tête pour valider</p>
+        </div>
+      </section>
+
+      <section id="result-screen" class="card hidden">
+        <h2>Résultat de la préqualification</h2>
+        <p id="result-verdict"></p>
+        <p id="result-message"></p>
+        <button id="restart-btn" type="button">Relancer</button>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

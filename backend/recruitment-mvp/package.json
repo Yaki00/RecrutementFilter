@@ -1,0 +1,16 @@
+{
+  "name": "mira-recruitment-mvp-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend MVP recrutement MIRA (Node + SQLite)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "helmet": "^7.1.0",
+    "sqlite3": "^5.1.7"
+  }
+}
